@@ -25,6 +25,7 @@ This is one of the following parameters controlling what XeBa does.
 
 
 SNAPSHOT: 
+
 A snapshot of the VM is created and exported as a template in an XVA file. The VM itself is briefly unreachable during this process. This method is recommended for VMs that can tolerate a hard shutdown easily (JBoss hosts, load balancers, third-party components). Explicitly excluded are database hosts or domain controllers. The snapshot itself is modified by XeBa which enables you to import the backup to a Xen-Server as VM, which is ready to boot instead of a template (which is the standard behaviour of Xen).
 
 SHUTDOWN: 
@@ -41,6 +42,24 @@ The VM is only exported, and the power state is not changed. VMs on a server sho
 
 MIGRATE: 
 
-Similar to NOPOWERON, but the VM is re-imported after export on a configurable target Xen server. Both VMs remain off without user interaction. After migration, the VM can be configured and started on the target server. 
+Similar to NOPOWERON, but the VM is re-imported after export on a configurable target Xen server. Both VMs remain powered off without user interaction. After migration, the VM can be configured and started on the target server. 
 Important: The import occurs on the target server's configured default storage destination. If, for example, you want to import to local storage, you must select this as the default before migration.
+
+##Ini-File / Initial configuration
+XeBa is essentially controlled by three parameters in the XeBa.ini file:
+
+[Common]
+
+rootPW="Root password for Xen"
+
+OutputDir="D:\XeBa-Backups"
+
+xe="C:\Program Files (x86)\Citrix\XenCenter\xe.exe"
+
+rootPW: Specify the root password for the XenServer to be backed up.
+
+OutputDir: Set the output path for the XVA files.
+
+xe: Set the path to the XE tool, which is installed with XenCenter.
+
 
