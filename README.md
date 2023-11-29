@@ -47,14 +47,12 @@ Important: The import occurs on the target server's configured default storage d
 
 ##Ini-File / Initial configuration
 XeBa is essentially controlled by three parameters in the XeBa.ini file:
-
+```
 [Common]
-
 rootPW="Root password for Xen"
-
 OutputDir="D:\XeBa-Backups"
-
 xe="C:\Program Files (x86)\Citrix\XenCenter\xe.exe"
+```
 
 rootPW: Specify the root password for the XenServer to be backed up.
 
