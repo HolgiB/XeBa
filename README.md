@@ -1,5 +1,5 @@
 # XeBa
-## XeBa - The Xen / XCP-ng backup tool\n
+## XeBa - The Xen / XCP-ng backup tool
 
 XeBa is an AutoIt script automatically creates backups based on a list of VMs using the provided XE tool, which is included with Xen-Center / XCP-ng center. 
 XeBa accesses non-modified Xen & XCP-ng hosts from a Windows host for centralized backups. It makes sense to use a physical server with Windows Server operating system with fast network connection.
