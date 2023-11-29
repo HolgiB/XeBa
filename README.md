@@ -45,13 +45,14 @@ MIGRATE:
 Similar to NOPOWERON, but the VM is re-imported after export on a configurable target Xen server. Both VMs remain powered off without user interaction. After migration, the VM can be configured and started on the target server. 
 Important: The import occurs on the target server's configured default storage destination. If, for example, you want to import to local storage, you must select this as the default before migration.
 
-##Ini-File / Initial configuration
+## Initial configuration
 XeBa is essentially controlled by three parameters in the XeBa.ini file:
 ```
 [Common]
 rootPW="Root password for Xen"
 OutputDir="D:\XeBa-Backups"
 xe="C:\Program Files (x86)\Citrix\XenCenter\xe.exe"
+TargetServer="<your_xenserver_ip_for_migration>"
 ```
 
 rootPW: Specify the root password for the XenServer to be backed up.
@@ -60,4 +61,11 @@ OutputDir: Set the output path for the XVA files.
 
 xe: Set the path to the XE tool, which is installed with XenCenter.
 
+TargetServer: IP of the target server used for the MIGRATE mode.
+
+## Scheduled execution
+You can easily use the standard task scheduler included with Windows for this or grab one of the many freeware schedulers out there. Either put your backup jobs into separate batch files or put the complete XeBa command in your task scheduler.
+
+## Points to consider
+XeBa does not any sophisticated things like adding timestamps to your backup files or keeping track only to backup three versions of a certain VM. You will have either to modify the source code for this by yourself or do some scripting magic outisde XeBa for copying and renaming files. It should not be too complicated to build a full automated backup solution with XeBa for your homelab. We have used XeBa in the past in a rather big Xen infrastructure (25+ XenServer) but recently move away to XCP-ng as virtualisation platform and Xen Orchestra for backing up our VMs.
 
