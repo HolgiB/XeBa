@@ -24,4 +24,23 @@ Simply specify the path and filename of a text file containing the names of the 
 This is one of the following parameters controlling what XeBa does.
 
 
+SNAPSHOT: 
+A snapshot of the VM is created and exported as a template in an XVA file. The VM itself is briefly unreachable during this process. This method is recommended for VMs that can tolerate a hard shutdown easily (JBoss hosts, load balancers, third-party components). Explicitly excluded are database hosts or domain controllers. The snapshot itself is modified by XeBa which enables you to import the backup to a Xen-Server as VM, which is ready to boot instead of a template (which is the standard behaviour of Xen).
+
+SHUTDOWN: 
+
+The VM is shut down before export and restarted after the export is completed. The VM is not available during the export period but is exported in a consistent state. This method is recommended for database hosts, domain controllers, and similar systems. The prerequisite is that hosted services come up cleanly after the restart.
+
+NOPOWERON: 
+
+Similar to SHUTDOWN, but the VM remains off after shutdown. This method is recommended for exporting VMs during migration to another Xen server.
+
+EXPORTONLY: 
+
+The VM is only exported, and the power state is not changed. VMs on a server should be shut down.
+
+MIGRATE: 
+
+Similar to NOPOWERON, but the VM is re-imported after export on a configurable target Xen server. Both VMs remain off without user interaction. After migration, the VM can be configured and started on the target server. 
+Important: The import occurs on the target server's configured default storage destination. If, for example, you want to import to local storage, you must select this as the default before migration.
 
