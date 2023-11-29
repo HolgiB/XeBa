@@ -12,11 +12,16 @@ XeBa is controlled via CLI invocation with three parameters:
 XeBa.exe *Xen Server IP* *VMs List* *Backup Mode*
 
 *Xen Server IP*
+
 Simply enter the IP of the management interface of the Xen hosts to be backed up. For Xen servers in a pool, enter the IP of the pool master here.
 
 *VMs List*
+
 Simply specify the path and filename of a text file containing the names of the VMs to be backed up.
 
 *Backup Mode*
+
 This is one of the following parameters controlling what XeBa does.
+
+
 
