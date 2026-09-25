@@ -1,0 +1,7 @@
+# AutoIt compiler binaries (not part of the source tree)
+Aut2exe.exe
+Aut2exe_x64.exe
+
+# Backup files
+*.bak
+*.orig

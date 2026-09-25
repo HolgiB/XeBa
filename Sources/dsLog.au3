@@ -13,34 +13,12 @@ Func LogLine ($LineChar)
   AddLog ($Line)
 EndFunc
 ; ----------------------------------------------------------------------------
-Func AddFile2Log ($Source)
-  LogLine ("#")
-  AddLog ("Adding file " & $Source & " to logfile")
-  $File = FileOpen($Source, 0)
-
-  If ($file = -1) Then
-    AddLog ("Error: Unable to open file " & $Source)
-    Exit
-  EndIf
-
-  ; Read in lines of text until the EOF is reached
-  While 1
-    $line = FileReadLine($file)
-    If @error = -1 Then ExitLoop
-    AddLog ($line)
-  Wend
-
-  FileClose($file)
-
-  LogLine ("#")
-EndFunc
-; ----------------------------------------------------------------------------
 Func XEOutput2Log ($Source)
   $File = FileOpen($Source, 0)
 
   If ($file = -1) Then
     AddLog ("Error: Unable to open file " & $Source)
-    Exit
+    Return SetError(1, 0, 0)
   EndIf
 
   ; Read in lines of text until the EOF is reached
@@ -51,6 +29,8 @@ Func XEOutput2Log ($Source)
   Wend
 
   FileClose($file)
+
+  Return 1
 EndFunc
 ; ----------------------------------------------------------------------------
 Func AddLog ($Message)
@@ -64,11 +44,13 @@ Func AddLine ($TextFile, $Line)
   ; Check if file opened for reading OK
   If $file = -1 Then
     MsgBox(0, "Error", "Function AddLine: " & @CRLF &  " Unable to open file: " & $TextFile)
-    Exit
+    Return SetError(1, 0, 0)
   EndIf
 
   FileWriteLine($file, $Line)
 
   FileClose($file)
+
+  Return 1
 EndFunc
 ; ----------------------------------------------------------------------------

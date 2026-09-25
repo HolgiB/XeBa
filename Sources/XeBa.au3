@@ -25,11 +25,18 @@ Func ReadIni()
 EndFunc
 ;++++++++++++++++++++++++++++++++++++++++++++++++++
 Func RunCommandAsBatch ($Commandline)
-  $MyBatchfile = @ScriptDir & "\RunBatch.cmd"
+  $MyBatchfile = @ScriptDir & "\RunBatch_" & @PID & ".cmd"
   If FileExists ($MyBatchfile) Then FileDelete ($MyBatchfile)
-  AddLine ($MyBatchfile, $Commandline)
-  RunWait ($MyBatchfile, @ScriptDir, @SW_HIDE)
+  EnvSet ("XeBaRootPW", $root_PW)
+  If AddLine ($MyBatchfile, StringReplace ($Commandline, $root_PW, Chr(34) & "%XeBaRootPW%" & Chr(34))) = 0 Then
+    AddLog ("Error: Unable to create batchfile " & $MyBatchfile)
+    EnvSet ("XeBaRootPW", "")
+    Return SetError(1, 0, -1)
+  EndIf
+  Local $Result = RunWait ($MyBatchfile, @ScriptDir, @SW_HIDE)
   FileDelete ($MyBatchfile)
+  EnvSet ("XeBaRootPW", "")
+  Return $Result
 EndFunc
 ;++++++++++++++++++++++++++++++++++++++++++++++++++
 ; Herausfinden der UUID der zu sichernden VM:
@@ -86,8 +93,6 @@ Func Start_VM_UUID ($root_PW, $Server_IP,  $VM_UUID, $VM_Name)
      Exit
    EndIf
 
-  $VM_UUID = FileReadLine($file)
-
   FileClose($file)
 
   AddLog ("Output of XE command:")
@@ -115,8 +120,6 @@ Func Shutdown_VM_UUID ($root_PW, $Server_IP,  $VM_UUID, $VM_Name)
      Exit
    EndIf
 
-  $VM_UUID = FileReadLine($file)
-
   FileClose($file)
 
   AddLog ("Output of XE command:")
@@ -135,7 +138,7 @@ Func Make_VM_Snapshot ($root_PW, $Server_IP, $VM_UUID,  $VM_Name)
 
    AddLog ("Taking Snapshot for VM " & $VM_Name & " with UUID " & $VM_UUID)
 
-   $CommandLine = Chr(34) & $xe & Chr(34) & " -s " & $Server_IP & " -u root -pw " & $root_PW & " vm-snapshot new-name-label=backup-" &  $VM_Name & " uuid=" & Chr(34) & $VM_UUID & Chr(34) & " > " & Chr(34) & $InfoFile & Chr(34)
+   $CommandLine = Chr(34) & $xe & Chr(34) & " -s " & $Server_IP & " -u root -pw " & $root_PW & " vm-snapshot new-name-label=" & Chr(34) & "backup-" &  $VM_Name & Chr(34) & " uuid=" & Chr(34) & $VM_UUID & Chr(34) & " > " & Chr(34) & $InfoFile & Chr(34)
 
    AddLog ("Running xe with following commandline: " & StringReplace($CommandLine, $root_PW, "<Root-Passwort>" ))
    RunCommandAsBatch ($Commandline)
@@ -157,7 +160,7 @@ Func Make_VM_Snapshot ($root_PW, $Server_IP, $VM_UUID,  $VM_Name)
 
   AddLog ("UUID for Snapshot for VM " & $VM_Name & " is " & $Snapshot_UUID)
 
-
+  If $Snapshot_UUID = "" Then AddLog ("Error: No Snapshot UUID returned for VM " & $VM_Name)
 
   Return ($Snapshot_UUID)
 EndFunc
@@ -199,11 +202,7 @@ Func Export_VM ($root_PW, $Server_IP, $VM_Name, $ExportFile)
   $InfoFile = @ScriptDir & "\xe_result.txt"
   If FileExists ($InfoFile) Then FileDelete ($InfoFile)
 
-  If FileExists ($Exportfile) Then
-   Do
-	 $ExportFile = _FileIncrementFileName ($ExportFile)
-   Until not FileExists ( $ExportFile)
-  EndIf
+  $ExportFile = _FileIncrementFileName ($ExportFile)
 
   AddLog ("Exporting VM " & $VM_Name & " with UUID " & $VM_UUID )
 
@@ -223,7 +222,11 @@ Func Export_VM ($root_PW, $Server_IP, $VM_Name, $ExportFile)
   AddLog ("Filesize of Exportfile " & $ExportFile & " is " &  $ExportFilesize  & " MB")
   AddLog ("Duration for Export " & Round ($TimeDiff) & " Seconds")
 
-  $Throughput = $ExportFilesize / $TimeDiff
+  If $TimeDiff > 0 Then
+    $Throughput = $ExportFilesize / $TimeDiff
+  Else
+    $Throughput = 0
+  EndIf
 
   AddLog ("Export performance " & Round ($Throughput, 2) & " MB / Seconds")
 
@@ -238,11 +241,7 @@ Func Export_VM_Snapshot ($root_PW, $Server_IP, $Snapshot_UUID, $VM_Name, $Export
   $InfoFile = @ScriptDir & "\xe_result.txt"
   If FileExists ($InfoFile) Then FileDelete ($InfoFile)
 
-  If FileExists ($Exportfile) Then
-   Do
-	 $ExportFile = _FileIncrementFileName ($ExportFile)
-   Until not FileExists ( $ExportFile)
-  EndIf
+  $ExportFile = _FileIncrementFileName ($ExportFile)
 
   AddLog ("Exporting Snapshot for VM " & $VM_Name & " with UUID " & $VM_UUID )
 
@@ -262,7 +261,11 @@ Func Export_VM_Snapshot ($root_PW, $Server_IP, $Snapshot_UUID, $VM_Name, $Export
   AddLog ("Filesize of Exportfile " & $ExportFile & " is " &  $ExportFilesize  & " MB")
   AddLog ("Duration for Export " & Round ($TimeDiff) & " Seconds")
 
-  $Throughput = $ExportFilesize / $TimeDiff
+  If $TimeDiff > 0 Then
+    $Throughput = $ExportFilesize / $TimeDiff
+  Else
+    $Throughput = 0
+  EndIf
 
   AddLog ("Export performance " & Round ($Throughput, 2) & " MB / Seconds")
 
@@ -289,14 +292,14 @@ Func Del_VM_Snapshot ($root_PW, $Server_IP, $Snapshot_UUID)
   AddLog ("Output of XE command:")
   XEOutput2Log ($InfoFile)
 
-  AddLog ("Deleting Snapshot for VM " & $VM_Name & " with Snapshot UUID " & $VM_UUID & " finished !")
+  AddLog ("Deleting Snapshot for VM " & $VM_Name & " with Snapshot UUID " & $Snapshot_UUID & " finished !")
 
   If FileExists ($InfoFile) Then FileDelete ($InfoFile)
   EndFunc
   ;++++++++++++++++++++++++++++++++++++++++++++++++++
 ; Import einer VM als XVE Datei auf einem Xen-Server:
 ; xe -s 172.25.10.128 -u root -pw <XenPW> vm-import filename="D:\centos7cftest_backup.xva"
-Func Import_VM ($root_PW, $TargetServerIP, $ImportFile)
+Func Import_VM ($root_PW, $TargetServerIP, $VM_Name, $ImportFile)
   Local $MyTimer = 0
   $InfoFile = @ScriptDir & "\xe_result.txt"
   If FileExists ($InfoFile) Then FileDelete ($InfoFile)
@@ -319,7 +322,11 @@ Func Import_VM ($root_PW, $TargetServerIP, $ImportFile)
   AddLog ("Filesize of Importfile " & $ImportFile & " is " &  $ImportFilesize  & " MB")
   AddLog ("Duration for Import " & Round ($TimeDiff) & " Seconds")
 
-  $Throughput = $ImportFilesize / $TimeDiff
+  If $TimeDiff > 0 Then
+    $Throughput = $ImportFilesize / $TimeDiff
+  Else
+    $Throughput = 0
+  EndIf
 
   AddLog ("Import performance " & Round ($Throughput, 2) & " MB / Seconds")
 
@@ -328,7 +335,7 @@ EndFunc
 ;++++++++++++++++++++++++++++++++++++++++++++++++++
 ; Returns filesize of given file in MB
 Func FileSizeMB ($FileName)
-  $FSize = FileGetSize($FileName) / 1044576
+  $FSize = FileGetSize($FileName) / 1048576
   Return (Round($FSize,2))
 EndFunc
 ;++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -371,6 +378,12 @@ EndIf
 
 $VM_file = FileOpen ($VMList, 0)
 
+If $VM_file = -1 Then
+   AddLog ("Error: Unable to open VM list file " & $VMList)
+   MsgBox(0, "Error", "Unable to open VM list file " & $VMList & ".")
+   Exit
+EndIf
+
 While 1
   $line = FileReadLine($VM_file)
 
@@ -378,7 +391,7 @@ While 1
 
   $VM_Name = StringStripWS($line, 3)
 
-  if StringCompare(StringLeft($VM_Name, 1), "#") > 0 Then
+  if StringLen($VM_Name) > 0 And StringLeft($VM_Name, 1) <> "#" Then
     LogLine ("=")
     AddLog ("Processing VM " &$VM_Name)
 
@@ -386,25 +399,29 @@ While 1
 
 	If StringCompare ($BackupMode, "SNAPSHOT") = 0 Then
       $Snapshot_UUID = Make_VM_Snapshot ($root_PW, $ServerIP, $VM_UUID, $VM_Name)
-      $ExportFile = $OutputDir & "\" & $VM_Name & "_" & @YEAR&@MON&@MDAY & ".xva"
-	  ; Snapshot als vollwertigen VM Export kennzeichnen
-	  Patch_VM_Snapshot ($root_PW, $ServerIP, $Snapshot_UUID, $VM_Name)
-      Export_VM_Snapshot ($root_PW, $ServerIP, $Snapshot_UUID, $VM_Name, $ExportFile)
-      Del_VM_Snapshot ($root_PW, $ServerIP, $Snapshot_UUID)
+      If $Snapshot_UUID <> "" Then
+        $ExportFile = $OutputDir & "\" & $VM_Name & "_" & @YEAR&@MON&@MDAY & ".xva"
+	    ; Snapshot als vollwertigen VM Export kennzeichnen
+	    Patch_VM_Snapshot ($root_PW, $ServerIP, $Snapshot_UUID, $VM_Name)
+        Export_VM_Snapshot ($root_PW, $ServerIP, $Snapshot_UUID, $VM_Name, $ExportFile)
+        Del_VM_Snapshot ($root_PW, $ServerIP, $Snapshot_UUID)
+      Else
+        AddLog ("Skipping VM " & $VM_Name & " because no snapshot could be created")
+      EndIf
     EndIf
 
 	If StringCompare ($BackupMode, "SHUTDOWN") = 0 or StringCompare ($BackupMode, "NOPOWERON") = 0 or StringCompare ($BackupMode, "MIGRATE") = 0 or StringCompare ($BackupMode, "EXPORTONLY") = 0 Then
       $ExportFile = $OutputDir & "\" & $VM_Name & "_" & @YEAR&@MON&@MDAY & ".xva"
 
 	  # Fahre VM nur runter, wenn nicht EXPORTONLY gewählt ist
-	  If StringCompare ($BackupMode, "EXPORTONLY") = 1 Then Shutdown_VM_UUID ($root_PW, $ServerIP,  $VM_UUID, $VM_Name)
+	  If StringCompare ($BackupMode, "EXPORTONLY") <> 0 Then Shutdown_VM_UUID ($root_PW, $ServerIP,  $VM_UUID, $VM_Name)
       Export_VM ($root_PW, $ServerIP, $VM_Name, $ExportFile)
 
 	  # Starte VM wieder wenn nur Backup mit Shutdown gewählt war
       If StringCompare ($BackupMode, "SHUTDOWN") = 0 Then Start_VM_UUID ($root_PW, $ServerIP,  $VM_UUID, $VM_Name)
 
 	  # Starte Import der exportierten VM auf neuen Server, falls MIGRATE gewählt war
-	  If StringCompare ($BackupMode, "MIGRATE")  = 0 Then Import_VM ($root_PW, $TargetServerIP, $ExportFile)
+	  If StringCompare ($BackupMode, "MIGRATE")  = 0 Then Import_VM ($root_PW, $TargetServerIP, $VM_Name, $ExportFile)
 	EndIf
 
 	LogLine ("=")
