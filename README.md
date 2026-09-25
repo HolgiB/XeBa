@@ -46,7 +46,7 @@ Similar to NOPOWERON, but the VM is re-imported after export on a configurable t
 Important: The import occurs on the target server's configured default storage destination. If, for example, you want to import to local storage, you must select this as the default before migration.
 
 ## Initial configuration
-XeBa is essentially controlled by three parameters in the XeBa.ini file:
+XeBa is essentially controlled by four parameters in the XeBa.ini file:
 ```
 [Common]
 rootPW="Root password for Xen"
@@ -68,4 +68,24 @@ You can easily use the standard task scheduler included with Windows for this or
 
 ## Points to consider
 XeBa does not any sophisticated things like adding timestamps to your backup files or keeping track only to backup three versions of a certain VM. You will have either to modify the source code for this by yourself or do some scripting magic outisde XeBa for copying and renaming files. It should not be too complicated to build a full automated backup solution with XeBa for your homelab. We have used XeBa in the past in a rather big Xen infrastructure (25+ XenServer) but recently moved away to XCP-ng as virtualisation platform and Xen Orchestra for backing up our VMs.
+
+## Version History
+
+### 2026-09-25
+Bugfix release, rebuilt with AutoIt v3.3.14.2 (x64).
+
+- Fixed incorrect file size and throughput calculation: the MB divisor was `1044576` instead of `1048576` (1024 × 1024), which made all reported sizes slightly too large.
+- Fixed `EXPORTONLY` power-state handling: the shutdown check used `StringCompare(...) = 1`, which only worked by accident due to the alphabetical order of the mode names. It now uses a proper "not equal" comparison, so the VM is shut down in every mode except `EXPORTONLY`.
+- Fixed VM list parsing: the previous comment detection skipped any VM whose name started with a character below `#` (e.g. `!`). Empty lines and comments starting with `#` are now handled explicitly.
+- Fixed the `vm-snapshot new-name-label` argument to be quoted, so VM names containing spaces are passed correctly.
+- Fixed a potential division by zero when calculating throughput if an export/import finished in under one second.
+- Added a check when opening the VM list file; an unreadable list previously failed silently.
+- Fixed `Make_VM_Snapshot` to detect an empty snapshot UUID and skip the VM instead of continuing with an invalid export.
+- Fixed the `Del_VM_Snapshot` log message, which reported the VM UUID instead of the snapshot UUID.
+- `RunCommandAsBatch` now uses a unique batch file name (`@PID`) to avoid clashes, returns the exit code of the executed command, and passes the root password via an environment variable instead of writing it in plain text into the temporary `.cmd` file.
+- `Import_VM` now takes the VM name as a parameter instead of relying on a global variable.
+- The logging helpers `XEOutput2Log` and `AddLine` now return an error instead of terminating the entire script.
+- Removed unused helper functions from `dsFileName.au3` and `dsLog.au3`.
+- Rebuilt `XeBa.exe` from the fixed sources.
+
 
